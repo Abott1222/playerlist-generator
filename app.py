@@ -23,11 +23,10 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# TODO: connect to a local postgresql database
-
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
+association_table = db.Table('association',
+    db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id')),
+    db.Column('artist_id',db. Integer, db.ForeignKey('Artist.id'))
+)
 
 class Venue(db.Model):
     __tablename__ = 'Venue'
@@ -36,11 +35,19 @@ class Venue(db.Model):
     name = db.Column(db.String)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
-    genre = db.Column(db.ARRAY(db.String(120)))
+    # Would it be more efficient to have an aray datatype of association table?
+    # genre = db.Column(db.ARRAY(db.String(120)))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+
+    #Create relationship with children but with the backref we can access
+    # Venue.shows
+    # AND
+    # Artist.shows?
+    shows = db.relationship("Artist",
+                    secondary=association_table, backref=db.backref('Venue'))
 
     def __str__(self):
       return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address}' 
@@ -83,8 +90,6 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-  venues = Artist.query.all()
-  print(venues)
   return render_template('pages/home.html')
 
 
@@ -95,7 +100,12 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  
+  data = Venue.query.order_by('state').all()
+  print(str(data) + "\n\n")
+  for venue in data:
+    print(venue.genre)
+    print('----- \n')
+
   data=[{
     "city": "San Francisco",
     "state": "CA",
@@ -235,9 +245,9 @@ def create_venue_submission():
       city = request.form['city'], address=request.form['address'],
       phone = request.form['phone'], genre = ','.join(request.form.getlist("genres")),
       facebook_link = request.form['facebook_link']
+      db.session.add(newVenue)
+      db.session.commit()
     )
-    db.session.add(newVenue)
-    db.session.commit()
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
   except:
     db.session.rollback()
