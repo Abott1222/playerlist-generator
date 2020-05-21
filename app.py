@@ -13,6 +13,7 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+from stateMapping import stateMapping as sm
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -23,9 +24,10 @@ app.config.from_object('config')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-association_table = db.Table('association',
+Show = db.Table('association',
     db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id')),
-    db.Column('artist_id',db. Integer, db.ForeignKey('Artist.id'))
+    db.Column('artist_id',db. Integer, db.ForeignKey('Artist.id')),
+    db.Column('date', db.Date, nullable=False)
 )
 
 class Venue(db.Model):
@@ -36,18 +38,18 @@ class Venue(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     # Would it be more efficient to have an aray datatype of association table?
-    # genre = db.Column(db.ARRAY(db.String(120)))
+    genre = db.Column(db.ARRAY(db.String(120)))
     address = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
 
     #Create relationship with children but with the backref we can access
-    # Venue.shows
+    # Venue.artist
     # AND
-    # Artist.shows?
-    shows = db.relationship("Artist",
-                    secondary=association_table, backref=db.backref('Venue'))
+    # Artist.venue
+    artist = db.relationship("Artist",
+                    secondary=Show, backref=db.backref('venue'))
 
     def __str__(self):
       return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address}' 
@@ -65,6 +67,7 @@ class Artist(db.Model):
     genres = db.Column(db.String(120))
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
+
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -100,11 +103,66 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data = Venue.query.order_by('state').all()
-  print(str(data) + "\n\n")
-  for venue in data:
-    print(venue.genre)
-    print('----- \n')
+  venues = Venue.query.order_by('city').all()
+
+  arrayOfVenues = []
+  oldCity = ''
+  venCityMap = {}
+  ixOfCity = -1
+
+  for venue in venues:
+    venCity = venue.city
+    venState = venue.state
+
+    if oldCity != venCity:
+      ixOfCity= ixOfCity+1 
+      venCityNew = {
+        "city": venCity,
+        "state": venState,
+        "venues": [
+          {
+            "id": venue.id,
+            "name": venue.name,
+            "num_upcoming_shows": 0
+          }
+        ]
+      }
+      arrayOfVenues.append(venCityNew)
+      oldCity = venCity
+    else:
+      print("\n\n")
+      print(arrayOfVenues[ixOfCity]['venues'])
+      print("\n\n")
+      arrayOfVenues[ixOfCity]['venues'].append({
+            "id": venue.id,
+            "name": venue.name,
+            "num_upcoming_shows": 0
+      })
+
+    # print("HERE \n\n\n")
+    # if venCity not in venueMap:
+    #   venueMap[venCity] = {
+    #     "city": venCity,
+    #     "state": venState,
+    #     "venues": [
+    #       {
+    #         "id": venue.id,
+    #         "name": venue.name,
+    #         "num_upcoming_shows": 0
+    #       }
+    #     ]
+    #   }
+    #   print(venueMap)
+    #   print(" ----- \n\n")
+    # else:
+    #   venueMap[venCity]['venues'].append({
+    #         "id": venue.id,
+    #         "name": venue.name,
+    #         "num_upcoming_shows": 0
+    #   })
+    # print(venueMap)
+  
+
 
   data=[{
     "city": "San Francisco",
@@ -127,7 +185,7 @@ def venues():
       "num_upcoming_shows": 0,
     }]
   }]
-  return render_template('pages/venues.html', areas=data);
+  return render_template('pages/venues.html', areas=arrayOfVenues)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -148,6 +206,8 @@ def search_venues():
 def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
+  venue = Venue.query.get(venue_id)
+
   data1={
     "id": 1,
     "name": "The Musical Hop",
@@ -225,8 +285,8 @@ def show_venue(venue_id):
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
-  data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
-  return render_template('pages/show_venue.html', venue=data)
+  # data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
+  return render_template('pages/show_venue.html', venue=venue)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -240,21 +300,23 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
+
   try:
     newVenue = Venue(name=request.form['name'], state=request.form['state'],
       city = request.form['city'], address=request.form['address'],
-      phone = request.form['phone'], genre = ','.join(request.form.getlist("genres")),
+      phone = request.form['phone'], genre = request.form.getlist("genres"),
       facebook_link = request.form['facebook_link']
-      db.session.add(newVenue)
-      db.session.commit()
     )
+    db.session.add(newVenue)
+    db.session.commit()
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
   except:
     db.session.rollback()
     flash('An error occurred. Venue ' + newVenue.name + ' could not be listed.')
   finally:
     db.session.close()
-    # on successful db insert, flash success
+
+  # on successful db insert, flash success
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
