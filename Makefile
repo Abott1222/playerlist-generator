@@ -3,3 +3,6 @@ run:
 
 csvArtist:
 	python3 create.py
+
+up:
+	source ../../fyyur/bin/activate

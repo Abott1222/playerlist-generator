@@ -99,8 +99,9 @@
           {% endfor %}
         {% endif %}
       {% endwith %}
-
-      {% block content %}{% endblock %}
+      <div class="{% if request.endpoint == 'artists'%}artist-container{% endif %}">
+        {% block content %}{% endblock %}
+      </div>
       
     </main>
 
