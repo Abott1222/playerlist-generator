@@ -68,7 +68,7 @@ class Venue(db.Model):
     artists = db.relationship("Artist", secondary="show")
 
     def __str__(self):
-      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address} Shows: {self.artist}' 
+      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address} Shows: {self.shows}' 
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -85,7 +85,7 @@ class Artist(db.Model):
     facebook_link = db.Column(db.String(120))
 
     def __str__(self):
-      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n  Shows: {self.venue}' 
+      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n  Shows: {self.shows}' 
 
 
 
