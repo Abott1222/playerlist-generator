@@ -38,8 +38,8 @@ class Show(db.Model):
     name = db.Column(db.String(120))
     date = db.Column(db.Date, nullable=False)
 
-    # artist = db.relationship("Artist", backref=db.backref('venue', lazy='joined'))
-    # venue = db.relationship("Venue", backref=db.backref('artist', lazy='joined'))
+    artist = db.relationship("Artist", backref=db.backref('venue', lazy='joined'))
+    venue = db.relationship("Venue", backref=db.backref('artist', lazy='joined'))
     venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'))
     artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('Artist.id'))
 
