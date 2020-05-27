@@ -14,15 +14,14 @@ if len(sys.argv) > 2:
 		try:
 			for row in spamreader:
 				print(row)
+				print(className)
 				if className == 'artist':
 					x = Artist(id=row[0], name=row[1], city=row[2], state=row[3], phone=row[4])
-					print(x)
 					db.session.add(x)
 				elif className == "venue":
 					x = Venue(id=row[0], name=row[1], city=row[2], state=row[3], address=row[4], phone=row[5], image_link=row[6])
-					print(x)
 					db.session.add(x)
-				print(x)
+
 			db.session.commit()
 		except:
 			print("fucked up")

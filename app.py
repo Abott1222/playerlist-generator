@@ -32,20 +32,23 @@ migrate = Migrate(app, db)
 # )
 
 class Show(db.Model):
-    __tablename__ = 'Show'
+    __tablename__ = 'show'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120))
     date = db.Column(db.Date, nullable=False)
 
-    artist = db.relationship("Artist", backref=db.backref('venue', lazy='joined'))
-    venue = db.relationship("Venue", backref=db.backref('artist', lazy='joined'))
-    venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'))
-    artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('Artist.id'))
+    
+    venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key = True)
+    artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('artist.id'), primary_key = True)
+    
+    venue = db.relationship("Venue", backref=db.backref('shows', lazy='joined'))
+    artist = db.relationship("Artist", backref=db.backref('shows', lazy='joined'))
+    #venue = db.relationship("Venue", backref=db.backref('shows', lazy='joined'))
 
 
 class Venue(db.Model):
-    __tablename__ = 'Venue'
+    __tablename__ = 'venue'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -62,8 +65,7 @@ class Venue(db.Model):
     # Venue.artist
     # AND
     # Artist.venue
-    # artist = db.relationship("Artist",
-    #                 secondary=Show, backref=db.backref('venue', lazy='joined'))
+    artists = db.relationship("Artist", secondary="show")
 
     def __str__(self):
       return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address} Shows: {self.artist}' 
@@ -71,7 +73,7 @@ class Venue(db.Model):
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
-    __tablename__ = 'Artist'
+    __tablename__ = 'artist'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
