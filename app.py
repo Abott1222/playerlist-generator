@@ -34,7 +34,6 @@ migrate = Migrate(app, db)
 class Show(db.Model):
     __tablename__ = 'show'
 
-    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120))
     date = db.Column(db.Date, nullable=False)
 
@@ -42,10 +41,11 @@ class Show(db.Model):
     venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key = True)
     artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('artist.id'), primary_key = True)
     
-    venue = db.relationship("Venue", backref=db.backref('shows', lazy='joined'))
-    artist = db.relationship("Artist", backref=db.backref('shows', lazy='joined'))
-    #venue = db.relationship("Venue", backref=db.backref('shows', lazy='joined'))
-
+    #venue = db.relationship("Venue", backref=db.backref('artists', lazy='joined'))
+    # artistObj = db.relationship("Artist", backref=db.backref('venues', lazy='joined'))
+    # venueObj = db.relationship("Venue", backref=db.backref('artists', lazy='joined'))
+    artist = db.relationship("Artist", back_populates="venues")
+    venue = db.relationship("Venue", back_populates="artists")
 
 class Venue(db.Model):
     __tablename__ = 'venue'
