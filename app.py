@@ -38,8 +38,8 @@ class Show(db.Model):
     date = db.Column(db.Date, nullable=False)
 
     
-    venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key = True)
-    artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('artist.id'), primary_key = True)
+    venue_id = db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key = True, nullable=False)
+    artist_id = db.Column('artist_id',db. Integer, db.ForeignKey('artist.id'), primary_key = True, nullable=False)
     
     #venue = db.relationship("Venue", backref=db.backref('artists', lazy='joined'))
     # artistObj = db.relationship("Artist", backref=db.backref('venues', lazy='joined'))
@@ -69,7 +69,11 @@ class Venue(db.Model):
     artists = db.relationship("Show", back_populates="venue")
 
     def __str__(self):
-      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address} Shows: {self.artists}' 
+      res =  f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n {self.genre} {self.address}'
+      if self.artists is not None:
+        for show in self.artists:
+          res = res + f' Shows: {show.name}'
+      return res
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -88,7 +92,13 @@ class Artist(db.Model):
     venues = db.relationship("Show", back_populates="artist")
 
     def __str__(self):
-      return f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n  Shows: {self.venues}' 
+      res = f'Venue: {self.id} Name: {self.name} {self.city},{self.state} \n'
+      if self.venues is not None:
+        for show in self.venues:
+          res = res + f' Shows: {show.name}'
+      else:
+          res = res + "Shows: []"
+      return res
 
 
 
@@ -420,45 +430,20 @@ def shows():
   # displays list of shows at /shows
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  query_shows = Venue.query.join(Show).join(Artist).filter((Show.c.venue_id == Venue.id) & (Show.c.artist_id == Artist.id)).all()
-
-  data=[{
-    "venue_id": 1,
-    "venue_name": "The Musical Hop",
-    "artist_id": 4,
-    "artist_name": "Guns N Petals",
-    "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    "start_time": "2019-05-21T21:30:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 5,
-    "artist_name": "Matt Quevedo",
-    "artist_image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    "start_time": "2019-06-15T23:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-01T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-08T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-15T20:00:00.000Z"
-  }]
-  return render_template('pages/shows.html', shows=data)
+  # query_shows = Venue.query.join(Show).join(Artist).filter((Show.c.venue_id == Venue.id) & (Show.c.artist_id == Artist.id)).all()
+  query_shows = Show.query.all()
+  res = []
+  for show in query_shows:
+    res.append({
+      "show_name": show.name,
+      "venue_name": show.venue.name,
+      "artist_id": show.artist.id,
+      "artist_name": show.artist.name,
+      "artist_image_link": show.artist.image_link,
+      "start_time": str(show.date),
+    })
+  
+  return render_template('pages/shows.html', shows=res)
 
 @app.route('/shows/create')
 def create_shows():
@@ -476,19 +461,16 @@ def create_show_submission():
     print(request.form)
     art_id = request.form['artist_id']
     ven_id = request.form['venue_id']
-    print(art_id)
-    print(ven_id)
+    start_time = request.form['start_time']
+    name = request.form['name']
+
     
     venue = Venue.query.get(ven_id)
-    print(venue)
     artist = Artist.query.get(art_id)
-    print(artist)
-    print(" \n----- ")
-    print(venue)
-    venue.artist.append(artist)
-    print(venue)
-    print("--------- \n")
-    
+    show = Show(name=name, date=start_time)
+    show.artist = artist
+    show.venue = venue
+    venue.artists.append(show)
     db.session.commit()
     flash(f'Successfully added Show: Starring {artist.name} at {venue.name}')
   except:
